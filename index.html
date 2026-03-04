@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binary Translator</title>
+<link rel="icon" type="image/png" href="262cf572-3229-4221-a031-055464d12162.png">
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
+
+body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
+    background:#0a192f;
+    color:white;
+    transition:background 0.4s,color 0.4s;
+}
+
+canvas{
+    position:fixed;
+    inset:0;
+    z-index:0;
+}
+
+.container{
+    position:relative;
+    z-index:2;
+    width:90%;
+    max-width:750px;
+    padding:45px;
+    border-radius:30px;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(30px);
+    border:1px solid rgba(255,255,255,0.15);
+    box-shadow:0 0 80px rgba(0,0,0,0.6);
+    animation:fadeIn 0.8s ease;
+    transition:background 0.4s,border 0.4s;
+}
+
+@keyframes fadeIn{
+    from{opacity:0;transform:translateY(40px);}
+    to{opacity:1;transform:translateY(0);}
+}
+
+h1{
+    text-align:center;
+    margin-bottom:25px;
+    font-size:28px;
+    font-weight:700;
+    background:linear-gradient(90deg,#00c6ff,#0077ff);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+textarea{
+    width:100%;
+    height:130px;
+    margin:12px 0;
+    padding:18px;
+    border-radius:20px;
+    border:none;
+    outline:none;
+    resize:none;
+    font-size:14px;
+    background:rgba(255,255,255,0.15);
+    color:white;
+    transition:0.3s;
+}
+
+textarea:focus{
+    background:rgba(255,255,255,0.25);
+    box-shadow:0 0 15px rgba(0,198,255,0.6);
+}
+
+.controls{
+    display:flex;
+    gap:12px;
+    margin-top:15px;
+}
+
+button{
+    flex:1;
+    padding:14px;
+    border-radius:20px;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    transform:translateY(-3px);
+}
+
+.copy{
+    background:linear-gradient(45deg,#00ffcc,#0099ff);
+}
+
+.clear{
+    background:linear-gradient(45deg,#ff4b5c,#ff1e56);
+}
+
+.toggle{
+    background:linear-gradient(45deg,#6a11cb,#2575fc);
+}
+
+.copy.active{
+    animation:pulse 1s infinite alternate;
+}
+
+@keyframes pulse{
+    from{box-shadow:0 0 10px #00c6ff;}
+    to{box-shadow:0 0 25px #00c6ff;}
+}
+
+footer{
+    text-align:center;
+    margin-top:20px;
+    font-size:12px;
+    color:#aaa;
+}
+
+body.light{
+    background:#f4f6fb;
+    color:#111;
+}
+
+body.light .container{
+    background:rgba(0,0,0,0.05);
+    border:1px solid rgba(0,0,0,0.1);
+}
+
+body.light textarea{
+    background:rgba(0,0,0,0.08);
+    color:#111;
+}
+
+body.light textarea:focus{
+    box-shadow:0 0 15px rgba(37,117,252,0.5);
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="container">
+    <h1>⚡ Binary Translator</h1>
+
+    <textarea id="input" placeholder="Type text or binary (mixed supported)..."></textarea>
+    <textarea id="output" placeholder="Output..." readonly></textarea>
+
+    <div class="controls">
+        <button class="copy" id="copyBtn">📋 Copy</button>
+        <button class="clear">🗑 Clear</button>
+        <button class="toggle">🌗 Theme</button>
+    </div>
+
+    <footer>Made with ❤️ • by @Fried-D-Chiecken</footer>
+</div>
+
+<script>
+/* =========================
+   PARTICLE BACKGROUND
+========================= */
+
+const canvas = document.getElementById("bg");
+const ctx = canvas.getContext("2d");
+
+let particles = [];
+let particleColor = "#00c6ff";
+
+let mouse = {
+    x: null,
+    y: null,
+    radius: 130,
+    clickRadius: 200
+};
+
+function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+window.addEventListener("mousemove", (e)=>{
+    mouse.x = e.x;
+    mouse.y = e.y;
+});
+
+window.addEventListener("mouseout", ()=>{
+    mouse.x = null;
+    mouse.y = null;
+});
+
+window.addEventListener("click", ()=>{
+    particles.forEach(p=>{
+        let dx = p.x - mouse.x;
+        let dy = p.y - mouse.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+
+        if(dist < mouse.clickRadius){
+            let angle = Math.atan2(dy, dx);
+            p.dx += Math.cos(angle) * 2;
+            p.dy += Math.sin(angle) * 2;
+        }
+    });
+});
+
+class Particle{
+    constructor(){
+        this.x=Math.random()*canvas.width;
+        this.y=Math.random()*canvas.height;
+        this.dx=(Math.random()-0.5)*0.7;
+        this.dy=(Math.random()-0.5)*0.7;
+        this.size=Math.random()*2+1;
+    }
+
+    update(){
+        this.x+=this.dx;
+        this.y+=this.dy;
+
+        if(this.x<0||this.x>canvas.width) this.dx*=-1;
+        if(this.y<0||this.y>canvas.height) this.dy*=-1;
+
+        if(mouse.x!==null){
+            let dx=this.x-mouse.x;
+            let dy=this.y-mouse.y;
+            let dist=Math.sqrt(dx*dx+dy*dy);
+
+            if(dist<mouse.radius){
+                let force=(mouse.radius-dist)/mouse.radius;
+                let angle=Math.atan2(dy,dx);
+                this.x+=Math.cos(angle)*force*4;
+                this.y+=Math.sin(angle)*force*4;
+            }
+        }
+    }
+
+    draw(){
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+        ctx.fillStyle=particleColor;
+        ctx.shadowColor=particleColor;
+        ctx.shadowBlur=8;
+        ctx.fill();
+        ctx.shadowBlur=0;
+    }
+}
+
+function initParticles(){
+    particles=[];
+    for(let i=0;i<80;i++){
+        particles.push(new Particle());
+    }
+}
+initParticles();
+
+function connect(){
+    for(let a=0;a<particles.length;a++){
+        for(let b=a;b<particles.length;b++){
+            let dx=particles[a].x-particles[b].x;
+            let dy=particles[a].y-particles[b].y;
+            let dist=Math.sqrt(dx*dx+dy*dy);
+
+            if(dist<120){
+                ctx.beginPath();
+                ctx.strokeStyle=`rgba(0,198,255,${1-dist/120})`;
+                ctx.moveTo(particles[a].x,particles[a].y);
+                ctx.lineTo(particles[b].x,particles[b].y);
+                ctx.stroke();
+            }
+        }
+    }
+}
+
+function animate(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    particles.forEach(p=>{
+        p.update();
+        p.draw();
+    });
+
+    connect();
+    requestAnimationFrame(animate);
+}
+animate();
+
+/* =========================
+   TRANSLATOR LOGIC
+========================= */
+
+const input=document.getElementById("input");
+const output=document.getElementById("output");
+const copyBtn=document.getElementById("copyBtn");
+const clearBtn=document.querySelector(".clear");
+const toggleBtn=document.querySelector(".toggle");
+
+input.addEventListener("input", ()=>{
+    const raw=input.value.trim();
+    if(!raw){output.value="";return;}
+
+    const tokens=raw.split(/\s+/);
+    let result=[];
+
+    tokens.forEach(token=>{
+        if(/^[01]{8}$/.test(token)){
+            result.push(String.fromCharCode(parseInt(token,2)));
+        } else if(/^[01]+$/.test(token)){
+            result.push("[InvalidBinary]");
+        } else {
+            for(let char of token){
+                result.push(char.charCodeAt(0).toString(2).padStart(8,"0"));
+            }
+        }
+    });
+
+    output.value=result.join(" ");
+});
+
+copyBtn.addEventListener("click", ()=>{
+    if(!output.value.trim()) return;
+
+    navigator.clipboard.writeText(output.value).then(()=>{
+        copyBtn.innerText="✅ Copied";
+        copyBtn.classList.add("active");
+        copyBtn.disabled=true;
+
+        setTimeout(()=>{
+            copyBtn.innerText="📋 Copy";
+            copyBtn.classList.remove("active");
+            copyBtn.disabled=false;
+        },3000);
+    });
+});
+
+clearBtn.addEventListener("click", ()=>{
+    input.value="";
+    output.value="";
+});
+
+toggleBtn.addEventListener("click", ()=>{
+    document.body.classList.toggle("light");
+    const isLight=document.body.classList.contains("light");
+    particleColor=isLight ? "#2575fc" : "#00c6ff";
+    localStorage.setItem("theme", isLight ? "light":"dark");
+});
+
+window.addEventListener("DOMContentLoaded", ()=>{
+    if(localStorage.getItem("theme")==="light"){
+        document.body.classList.add("light");
+        particleColor="#2575fc";
+    }
+});
+</script>
+
+</body>
+</html>
